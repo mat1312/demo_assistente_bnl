@@ -1,9 +1,9 @@
 import os
 from dotenv import load_dotenv
-from langchain.document_loaders import PyPDFLoader
+from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import TokenTextSplitter
-from langchain.embeddings.openai import OpenAIEmbeddings
-from langchain.vectorstores import FAISS
+from langchain_openai import OpenAIEmbeddings
+from langchain_community.vectorstores import FAISS
 
 # Carica le variabili d'ambiente (in particolare, OPENAI_API_KEY)
 load_dotenv()

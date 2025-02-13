@@ -2,10 +2,8 @@ import os
 import streamlit as st
 from dotenv import load_dotenv
 
-# Importa le funzionalità di LangChain per embeddings, vector store, LLM e retrieval
-from langchain.embeddings.openai import OpenAIEmbeddings
-from langchain.vectorstores import FAISS
-from langchain.chat_models import ChatOpenAI
+from langchain_openai import OpenAIEmbeddings, ChatOpenAI
+from langchain_community.vectorstores import FAISS
 from langchain.chains import RetrievalQA
 
 # Carica le variabili d'ambiente
@@ -17,16 +15,13 @@ if not api_key:
 
 # Imposta il percorso del vector DB persistente
 persist_directory = "vectordb"
-
-# Verifica che il vector DB sia stato creato
 if not os.path.exists(persist_directory):
     st.error("Il vector DB non è stato trovato. Esegui prima l'ingestione con 'ingest.py'.")
     st.stop()
 
-# Carica il vector DB
+# Carica il vector DB abilitando la deserializzazione per file pickle
 embeddings = OpenAIEmbeddings()
 vector_store = FAISS.load_local(persist_directory, embeddings, allow_dangerous_deserialization=True)
-
 
 # Inizializza il modello LLM e la catena di RetrievalQA
 llm = ChatOpenAI(temperature=0.1, model="gpt-4o-mini")
@@ -41,6 +36,9 @@ user_input = st.text_input("Inserisci la tua domanda qui")
 
 if st.button("Invia") and user_input:
     with st.spinner("Generazione della risposta..."):
-        answer = qa_chain.run(user_input)
+        answer = qa_chain.invoke(user_input)
+        # Se il risultato è un dizionario, estrai solamente il valore associato a "result"
+        if isinstance(answer, dict) and "result" in answer:
+            answer = answer["result"]
     st.markdown(f"**Q:** {user_input}")
     st.markdown(f"**A:** {answer}")
