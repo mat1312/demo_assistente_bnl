@@ -32,7 +32,7 @@ def ingest_pdfs_to_vectordb(folder_path, persist_directory):
     docs = load_all_pdfs_from_folder(folder_path)
     
     print("Esecuzione del text splitting...")
-    text_splitter = TokenTextSplitter(model_name="gpt-4o-mini", chunk_size=1000, chunk_overlap=100)
+    text_splitter = TokenTextSplitter(model_name="gpt-4o-mini", chunk_size=1000, chunk_overlap=100, add_start_index=True,)
     docs = text_splitter.split_documents(docs)
     
     print("Creazione delle embeddings e del vector store...")
