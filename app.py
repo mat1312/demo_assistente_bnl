@@ -51,33 +51,35 @@ if st.button("Invia") and user_input:
     st.markdown(f"**Q:** {user_input}")
     st.markdown(f"**A:** {answer}")
 
-    # Visualizza le fonti come link cliccabili se disponibili, mostrando anche il nome del file, la pagina e la riga
+    # Visualizza le fonti come link cliccabili, mostrando nome del file, pagina e riga (se disponibili)
     if source_docs:
         st.markdown("**Fonti:**")
-        # Aggrega per fonte per evitare duplicati, accumulando le occorrenze (pagina e riga)
         sources_dict = {}
         for doc in source_docs:
             metadata = doc.metadata
             if "source" in metadata:
-                # Normalizza il percorso sostituendo backslash con slash
+                # Normalizza il percorso sostituendo i backslash con slash
                 source = metadata["source"].replace("\\", "/")
+                # Estrae pagina e riga, se disponibili
                 page = metadata.get("page", None)
                 line = metadata.get("start_index", None)
+                # Aggrega le occorrenze per fonte
                 if source in sources_dict:
                     sources_dict[source].append((page, line))
                 else:
                     sources_dict[source] = [(page, line)]
                     
-        # Visualizza ogni fonte come link cliccabile con il nome del file e le occorrenze (pagina e riga)
+        # Visualizza per ciascuna fonte il link con il nome del file e le occorrenze (pagina e riga)
         for source, occurrences in sources_dict.items():
             file_name = os.path.basename(source)
             occ_list = []
             for occ in occurrences:
                 p, l = occ
                 occ_str = ""
-                if p is not None:
+                # Se il numero di pagina è 0 o None, lo consideriamo non disponibile
+                if p is not None and p != 0:
                     occ_str += f"pagina {p}"
-                if l is not None:
+                if l is not None and l != 0:
                     occ_str += f", riga {l}" if occ_str else f"riga {l}"
                 if occ_str:
                     occ_list.append(occ_str)
@@ -125,5 +127,4 @@ widget_html = """
 <script src="https://elevenlabs.io/convai-widget/index.js" async type="text/javascript"></script>
 """
 
-# Imposta l'altezza del componente HTML in base alle dimensioni definite
 components.html(widget_html, height=700, scrolling=True)
