@@ -1,12 +1,12 @@
 import os
 import streamlit as st
 from dotenv import load_dotenv
-
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_community.vectorstores import FAISS
 from langchain.chains import RetrievalQA
+import streamlit.components.v1 as components
 
-# Carica le variabili d'ambiente
+# Carica le variabili d'ambiente dal file .env
 load_dotenv()
 api_key = os.getenv("OPENAI_API_KEY")
 if not api_key:
@@ -31,14 +31,56 @@ qa_chain = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=ve
 st.set_page_config(page_title="Assistente per Mutui e Finanziamenti", layout="wide")
 st.title("Assistente per Mutui e Finanziamenti")
 
+# ==============================
+# SEZIONE 1: Q&A tramite LangChain e OpenAI
+# ==============================
 st.subheader("Fai una domanda su mutui, finanziamenti, ecc.")
 user_input = st.text_input("Inserisci la tua domanda qui")
 
 if st.button("Invia") and user_input:
     with st.spinner("Generazione della risposta..."):
         answer = qa_chain.invoke(user_input)
-        # Se il risultato è un dizionario, estrai solamente il valore associato a "result"
+        # Se il risultato è un dizionario, estrai il valore associato a "result"
         if isinstance(answer, dict) and "result" in answer:
             answer = answer["result"]
     st.markdown(f"**Q:** {user_input}")
     st.markdown(f"**A:** {answer}")
+
+# ==============================
+# SEZIONE 2: Agent Conversazionale ElevenLabs (centrato e ingrandito)
+# ==============================
+st.subheader("Agent Conversazionale ElevenLabs")
+
+widget_html = """
+<style>
+  /* Contenitore centrante */
+  .center-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+      margin-top: 50px;
+  }
+  /* Dimensioni personalizzate del widget */
+  .custom-widget {
+      width: 800px !important;
+      height: 600px !important;
+  }
+  /* Forza il widget a rispettare le dimensioni del contenitore */
+  elevenlabs-convai {
+      position: static !important;
+      width: 100% !important;
+      height: 100% !important;
+      display: block !important;
+  }
+</style>
+<div class="center-container">
+  <div class="custom-widget">
+    <elevenlabs-convai agent-id="nUnSSapc73VFkrd3Z73U"></elevenlabs-convai>
+  </div>
+</div>
+<script src="https://elevenlabs.io/convai-widget/index.js" async type="text/javascript"></script>
+"""
+
+# Imposta l'altezza del componente HTML in base alle dimensioni definite
+components.html(widget_html, height=700, scrolling=True)
