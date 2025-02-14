@@ -23,9 +23,14 @@ if not os.path.exists(persist_directory):
 embeddings = OpenAIEmbeddings()
 vector_store = FAISS.load_local(persist_directory, embeddings, allow_dangerous_deserialization=True)
 
-# Inizializza il modello LLM e la catena di RetrievalQA
+# Inizializza il modello LLM e la catena di RetrievalQA includendo il ritorno dei documenti sorgente
 llm = ChatOpenAI(temperature=0.1, model="gpt-4o-mini")
-qa_chain = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=vector_store.as_retriever())
+qa_chain = RetrievalQA.from_chain_type(
+    llm=llm,
+    chain_type="stuff",  # oppure un altro chain_type a seconda delle tue esigenze
+    retriever=vector_store.as_retriever(),
+    return_source_documents=True
+)
 
 # Configurazione della pagina Streamlit
 st.set_page_config(page_title="Assistente per Mutui e Finanziamenti", layout="wide")
@@ -39,12 +44,50 @@ user_input = st.text_input("Inserisci la tua domanda qui")
 
 if st.button("Invia") and user_input:
     with st.spinner("Generazione della risposta..."):
-        answer = qa_chain.invoke(user_input)
-        # Se il risultato è un dizionario, estrai il valore associato a "result"
-        if isinstance(answer, dict) and "result" in answer:
-            answer = answer["result"]
+        result = qa_chain.invoke(user_input)
+        if isinstance(result, dict) and "result" in result:
+            answer = result["result"]
+            source_docs = result.get("source_documents", [])
     st.markdown(f"**Q:** {user_input}")
     st.markdown(f"**A:** {answer}")
+
+    # Visualizza le fonti come link cliccabili se disponibili, mostrando anche il nome del file, la pagina e la riga
+    if source_docs:
+        st.markdown("**Fonti:**")
+        # Aggrega per fonte per evitare duplicati, accumulando le occorrenze (pagina e riga)
+        sources_dict = {}
+        for doc in source_docs:
+            metadata = doc.metadata
+            if "source" in metadata:
+                # Normalizza il percorso sostituendo backslash con slash
+                source = metadata["source"].replace("\\", "/")
+                page = metadata.get("page", None)
+                line = metadata.get("start_index", None)
+                if source in sources_dict:
+                    sources_dict[source].append((page, line))
+                else:
+                    sources_dict[source] = [(page, line)]
+                    
+        # Visualizza ogni fonte come link cliccabile con il nome del file e le occorrenze (pagina e riga)
+        for source, occurrences in sources_dict.items():
+            file_name = os.path.basename(source)
+            occ_list = []
+            for occ in occurrences:
+                p, l = occ
+                occ_str = ""
+                if p is not None:
+                    occ_str += f"pagina {p}"
+                if l is not None:
+                    occ_str += f", riga {l}" if occ_str else f"riga {l}"
+                if occ_str:
+                    occ_list.append(occ_str)
+            occ_text = " - ".join(occ_list) if occ_list else ""
+            if occ_text:
+                st.markdown(f"- [{file_name} ({occ_text})]({source})")
+            else:
+                st.markdown(f"- [{file_name}]({source})")
+    else:
+        st.markdown("*Nessuna fonte disponibile.*")
 
 # ==============================
 # SEZIONE 2: Agent Conversazionale ElevenLabs (centrato e ingrandito)
